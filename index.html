@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mini-Kahoot — Quiz interactivo</title>
+  <style>
+    :root{--bg:#0f172a;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--correct:#10b981;--wrong:#ef4444}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#e6eef6;background:linear-gradient(180deg,#071029 0%, #071732 100%)}
+    .app{max-width:980px;margin:32px auto;padding:18px;background:rgba(255,255,255,0.02);border-radius:12px;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
+    header{display:flex;align-items:center;gap:12px}
+    header h1{font-size:20px;margin:0}
+    .center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:28px}
+    .card{background:var(--card);padding:20px;border-radius:10px;width:100%;}
+    .btn{display:inline-block;padding:10px 16px;border-radius:8px;background:var(--accent);color:#052022;font-weight:600;border:none;cursor:pointer}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    .question{font-size:18px;margin-bottom:12px}
+    .answers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .answer{padding:12px;border-radius:8px;background:rgba(255,255,255,0.02);cursor:pointer;border:1px solid rgba(255,255,255,0.03)}
+    .answer:hover{transform:translateY(-3px);transition:all .12s}
+    .answer.correct{background:linear-gradient(90deg, rgba(16,185,129,0.12), rgba(16,185,129,0.06));border-color:rgba(16,185,129,0.22)}
+    .answer.wrong{background:linear-gradient(90deg, rgba(239,68,68,0.08), rgba(239,68,68,0.04));border-color:rgba(239,68,68,0.16)}
+    .meta{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:var(--muted);font-size:14px}
+    .progress{height:10px;background:rgba(255,255,255,0.03);border-radius:999px;overflow:hidden}
+    .progress > i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--accent),#7dd3fc)}
+    .timer{font-weight:700}
+    .start-screen{padding:20px;text-align:center}
+    .results{padding:20px;text-align:center}
+    footer{margin-top:12px;color:var(--muted);font-size:13px;text-align:center}
+    @media(max-width:600px){.answers{grid-template-columns:1fr}.app{margin:12px}}
+  </style>
+</head>
+<body>
+  <div class="app" role="main">
+    <header>
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <rect width="24" height="24" rx="6" fill="#052022"/>
+        <path d="M6 9h12v2H6zM6 13h8v2H6z" fill="#06b6d4"/>
+      </svg>
+      <div>
+        <h1>Mini-Kahoot — Quiz interactivo</h1>
+        <div style="color:var(--muted);font-size:13px">Diseñado para iframe — usa porcentaje para ancho/alto</div>
+      </div>
+    </header>
+
+    <main class="center card" id="app">
+
+      <div id="start" class="start-screen">
+        <h2 style="margin:0 0 6px 0">¡Listo para jugar?</h2>
+        <p style="margin:0 0 12px;color:var(--muted)">Presiona iniciar y responde las preguntas antes de que se acabe el tiempo.</p>
+        <div class="controls">
+          <button class="btn" id="startBtn">Iniciar juego</button>
+          <button class="btn ghost" id="editBtn">Editar preguntas</button>
+        </div>
+      </div>
+
+      <div id="questionArea" style="display:none;width:100%">
+        <div class="meta">
+          <div>Pregunta <span id="qindex">1</span>/<span id="qtotal">1</span></div>
+          <div class="timer">⏱ <span id="time">10</span>s</div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="question" id="questionText">Texto de la pregunta</div>
+          <div class="answers" id="answers"></div>
+        </div>
+
+        <div style="margin-top:14px">
+          <div class="progress" aria-hidden><i id="prog"></i></div>
+        </div>
+
+      </div>
+
+      <div id="results" class="results" style="display:none">
+        <h2 id="scoreTitle">Resultados</h2>
+        <p id="scoreText" style="color:var(--muted)"></p>
+        <div style="margin-top:12px">
+          <button class="btn" id="replayBtn">Jugar de nuevo</button>
+          <button class="btn ghost" id="downloadBtn">Descargar resultados</button>
+        </div>
+      </div>
+
+      <div id="editor" style="display:none;width:100%;margin-top:12px">
+        <label style="font-size:14px;color:var(--muted)">Editar JSON de preguntas (ej. cambiar/o agregar)</label>
+        <textarea id="jsonInput" style="width:100%;height:140px;margin-top:8px;background:#0b1220;color:#e6eef6;border:1px solid rgba(255,255,255,0.03);padding:10px;border-radius:8px;font-family:monospace;font-size:13px"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" id="saveJson">Guardar</button>
+          <button class="btn ghost" id="closeEditor">Cerrar</button>
+        </div>
+      </div>
+
+    </main>
+
+    <footer>Consejo: en un iframe usa <code>&lt;iframe src=\"tuarchivo.html\" style=\"width:100%;height:100vh;border:0;\"&gt;&lt;/iframe&gt;</code></footer>
+  </div>
+
+  <script>
+    // CONFIGURACIÓN: cambia preguntas y tiempo por pregunta aquí
+    const timePerQuestion = 12; // segundos
+
+    const QUESTIONS = [
+      {q: '¿Cuál es la capital de México?', choices: ['Guadalajara','Monterrey','Ciudad de México','Puebla'], answer: 2},
+      {q: '¿Qué lenguaje se usa para páginas web?', choices: ['Python','HTML','C++','Swift'], answer: 1},
+      {q: '¿2 + 2 = ?', choices: ['3','4','5','22'], answer: 1}
+    ];
+
+    // --- lógica del juego ---
+    let index = 0, score = 0, timer = null, timeLeft = timePerQuestion;
+
+    const startBtn = document.getElementById('startBtn');
+    const editBtn = document.getElementById('editBtn');
+    const startArea = document.getElementById('start');
+    const qArea = document.getElementById('questionArea');
+    const results = document.getElementById('results');
+    const qIndex = document.getElementById('qindex');
+    const qTotal = document.getElementById('qtotal');
+    const qText = document.getElementById('questionText');
+    const answers = document.getElementById('answers');
+    const timeEl = document.getElementById('time');
+    const prog = document.getElementById('prog');
+    const replayBtn = document.getElementById('replayBtn');
+    const scoreText = document.getElementById('scoreText');
+    const scoreTitle = document.getElementById('scoreTitle');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const editArea = document.getElementById('editor');
+    const jsonInput = document.getElementById('jsonInput');
+    const saveJson = document.getElementById('saveJson');
+    const closeEditor = document.getElementById('closeEditor');
+
+    // initialize editor content
+    jsonInput.value = JSON.stringify(QUESTIONS, null, 2);
+
+    function startGame(){
+      index = 0; score = 0;
+      qTotal.textContent = QUESTIONS.length;
+      startArea.style.display = 'none'; results.style.display = 'none'; editArea.style.display='none';
+      qArea.style.display = 'block';
+      showQuestion();
+    }
+
+    function showQuestion(){
+      clearTimer();
+      const cur = QUESTIONS[index];
+      qIndex.textContent = index + 1;
+      qText.textContent = cur.q;
+      answers.innerHTML = '';
+      cur.choices.forEach((c,i)=>{
+        const btn = document.createElement('button');
+        btn.className = 'answer';
+        btn.textContent = c;
+        btn.dataset.index = i;
+        btn.onclick = () => selectAnswer(i, btn);
+        answers.appendChild(btn);
+      });
+      timeLeft = timePerQuestion; updateTimerVisual();
+      timer = setInterval(tick, 200);
+    }
+
+    function tick(){
+      timeLeft -= 0.2; if(timeLeft <= 0){timeLeft = 0; clearTimer(); timeoutAnswer();}
+      updateTimerVisual();
+    }
+
+    function updateTimerVisual(){
+      timeEl.textContent = Math.ceil(timeLeft);
+      const pct = Math.max(0, timeLeft / timePerQuestion);
+      prog.style.width = Math.round(pct*100) + '%';
+    }
+
+    function clearTimer(){ if(timer) { clearInterval(timer); timer=null }}
+
+    function selectAnswer(i, btnEl){
+      clearTimer();
+      const cur = QUESTIONS[index];
+      const correct = cur.answer;
+      // mark buttons
+      [...answers.children].forEach(b=>{
+        b.disabled = true;
+        if(Number(b.dataset.index) === correct) b.classList.add('correct');
+      });
+      if(i === correct){ score++; btnEl.classList.add('correct'); }
+      else { btnEl.classList.add('wrong'); }
+      // wait a bit then next
+      setTimeout(nextQuestion, 900);
+    }
+
+    function timeoutAnswer(){
+      // mark correct answer then next
+      const cur = QUESTIONS[index];
+      [...answers.children].forEach(b=>{ b.disabled = true; if(Number(b.dataset.index) === cur.answer) b.classList.add('correct'); });
+      setTimeout(nextQuestion, 900);
+    }
+
+    function nextQuestion(){
+      index++;
+      if(index >= QUESTIONS.length) endGame(); else showQuestion();
+    }
+
+    function endGame(){
+      clearTimer(); qArea.style.display = 'none'; results.style.display = 'block';
+      scoreTitle.textContent = '¡Terminado!';
+      scoreText.textContent = `Obtuviste ${score} de ${QUESTIONS.length} respuestas correctas.`;
+    }
+
+    startBtn.addEventListener('click', startGame);
+    replayBtn.addEventListener('click', startGame);
+
+    editBtn.addEventListener('click', ()=>{ editArea.style.display='block'; jsonInput.focus(); });
+    closeEditor.addEventListener('click', ()=>{ editArea.style.display='none'; });
+
+    saveJson.addEventListener('click', ()=>{
+      try{
+        const parsed = JSON.parse(jsonInput.value);
+        if(!Array.isArray(parsed)) throw new Error('Se requiere un array de preguntas');
+        // replace QUESTIONS content (note: local variable won't update const, so copy)
+        QUESTIONS.length = 0; parsed.forEach(p=>QUESTIONS.push(p));
+        qTotal.textContent = QUESTIONS.length;
+        alert('Preguntas guardadas. Presiona Iniciar juego.');
+      }catch(err){ alert('JSON inválido: ' + err.message); }
+    });
+
+    downloadBtn.addEventListener('click', ()=>{
+      const data = {score, total: QUESTIONS.length, date: new Date().toISOString()};
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'resultados_quiz.json'; a.click(); URL.revokeObjectURL(url);
+    });
+
+    // Make iframe resize-friendly when loaded inside parent
+    window.addEventListener('message', e => {
+      if(e.data && e.data.type === 'setTimePerQuestion'){
+        // example of remote configuration
+        // parent can postMessage({type:'setTimePerQuestion', value:15}, '*')
+      }
+    });
+
+    // Accessibility: allow keyboard selection (1-4)
+    window.addEventListener('keydown', (e)=>{
+      if(qArea.style.display==='block'){
+        const k = parseInt(e.key);
+        if(!isNaN(k) && k>=1 && k<=4){ const btn = answers.children[k-1]; if(btn) btn.click(); }
+      }
+    });
+
+  </script>
+</body>
+</html>
