@@ -15,6 +15,7 @@
     .card{background:var(--card);padding:20px;border-radius:10px;width:100%;}
     .btn{display:inline-block;padding:10px 16px;border-radius:8px;background:var(--accent);color:#052022;font-weight:600;border:none;cursor:pointer}
     .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    .btn:disabled{opacity:0.5;cursor:not-allowed}
     .controls{display:flex;gap:8px;flex-wrap:wrap}
     .question{font-size:18px;margin-bottom:12px}
     .answers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -28,6 +29,8 @@
     .timer{font-weight:700}
     .start-screen{padding:20px;text-align:center}
     .results{padding:20px;text-align:center}
+    .loading{color:var(--accent);font-size:14px}
+    .error{color:var(--wrong);font-size:14px;padding:10px;background:rgba(239,68,68,0.1);border-radius:6px}
     footer{margin-top:12px;color:var(--muted);font-size:13px;text-align:center}
     @media(max-width:600px){.answers{grid-template-columns:1fr}.app{margin:12px}}
   </style>
@@ -41,7 +44,7 @@
       </svg>
       <div>
         <h1>Mini-Kahoot — Quiz interactivo</h1>
-        <div style="color:var(--muted);font-size:13px">Diseñado para iframe — usa porcentaje para ancho/alto</div>
+        <div style="color:var(--muted);font-size:13px">Conectado con Google Sheets</div>
       </div>
     </header>
 
@@ -49,11 +52,13 @@
 
       <div id="start" class="start-screen">
         <h2 style="margin:0 0 6px 0">¡Listo para jugar?</h2>
-        <p style="margin:0 0 12px;color:var(--muted)">Presiona iniciar y responde las preguntas antes de que se acabe el tiempo.</p>
+        <p style="margin:0 0 12px;color:var(--muted)">Las preguntas se cargan desde Google Sheets. Responde antes de que se acabe el tiempo.</p>
         <div class="controls">
-          <button class="btn" id="startBtn">Iniciar juego</button>
-          <button class="btn ghost" id="editBtn">Editar preguntas</button>
+          <button class="btn" id="startBtn">Cargar preguntas y jugar</button>
+          <button class="btn ghost" id="editBtn">Editar preguntas locales</button>
         </div>
+        <div id="loadingDiv" class="loading" style="display:none">Cargando preguntas desde Google Sheets...</div>
+        <div id="errorDiv" class="error" style="display:none"></div>
       </div>
 
       <div id="questionArea" style="display:none;width:100%">
@@ -80,35 +85,45 @@
           <button class="btn" id="replayBtn">Jugar de nuevo</button>
           <button class="btn ghost" id="downloadBtn">Descargar resultados</button>
         </div>
+        <div id="saveStatus" class="loading" style="display:none; margin-top:8px"></div>
       </div>
 
       <div id="editor" style="display:none;width:100%;margin-top:12px">
-        <label style="font-size:14px;color:var(--muted)">Editar JSON de preguntas (ej. cambiar/o agregar)</label>
+        <label style="font-size:14px;color:var(--muted)">Editar JSON de preguntas locales (backup)</label>
         <textarea id="jsonInput" style="width:100%;height:140px;margin-top:8px;background:#0b1220;color:#e6eef6;border:1px solid rgba(255,255,255,0.03);padding:10px;border-radius:8px;font-family:monospace;font-size:13px"></textarea>
         <div style="display:flex;gap:8px;margin-top:8px">
-          <button class="btn" id="saveJson">Guardar</button>
+          <button class="btn" id="saveJson">Guardar localmente</button>
           <button class="btn ghost" id="closeEditor">Cerrar</button>
         </div>
       </div>
 
     </main>
 
-  <!--   <footer>Consejo: en un iframe usa <code>&lt;iframe src=\"tuarchivo.html\" style=\"width:100%;height:100vh;border:0;\"&gt;&lt;/iframe&gt;</code></footer>-->
+    <footer>
+      <p>📊 Los resultados se guardan automáticamente en Google Sheets</p>
+      <p style="font-size:11px">Configura tu Google Apps Script URL abajo ⬇️</p>
+    </footer>
   </div>
 
   <script>
-    // CONFIGURACIÓN: cambia preguntas y tiempo por pregunta aquí
-    const timePerQuestion = 12; // segundos
-
-    const QUESTIONS = [
-      {q: '¿Cuál es la capital de México?', choices: ['Guadalajara','Monterrey','Ciudad de México','Puebla'], answer: 2},
-      {q: '¿Qué lenguaje se usa para páginas web?', choices: ['Python','HTML','C++','Swift'], answer: 1},
-      {q: '¿2 + 2 = ?', choices: ['3','4','5','22'], answer: 1}
+    // 🔧 CONFIGURACIÓN IMPORTANTE - CAMBIA ESTA URL
+    // Obtén esta URL después de publicar tu Google Apps Script
+    const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwiBFpQCAs1PZFPLF8LvQTjtmBuYywun8V0t1vzf5SGX7mHtAMkTwvaGUDGpyhCGmg4-w/exec';
+    
+    // Configuración local (backup)
+    const timePerQuestion = 12;
+    const FALLBACK_QUESTIONS = [
+      {q: '¿?', choices: ['Guadalajara','Monterrey','Ciudad de México','Puebla'], answer: 2},
+      {q: '¿?', choices: ['Python','HTML','C++','Swift'], answer: 1},
+      {q: '¿?', choices: ['3','4','5','22'], answer: 1}
     ];
 
-    // --- lógica del juego ---
+    // Variables del juego
+    let QUESTIONS = [...FALLBACK_QUESTIONS];
     let index = 0, score = 0, timer = null, timeLeft = timePerQuestion;
+    let gameDetails = []; // Para guardar detalles de cada respuesta
 
+    // Elementos DOM
     const startBtn = document.getElementById('startBtn');
     const editBtn = document.getElementById('editBtn');
     const startArea = document.getElementById('start');
@@ -128,25 +143,133 @@
     const jsonInput = document.getElementById('jsonInput');
     const saveJson = document.getElementById('saveJson');
     const closeEditor = document.getElementById('closeEditor');
+    const loadingDiv = document.getElementById('loadingDiv');
+    const errorDiv = document.getElementById('errorDiv');
+    const saveStatus = document.getElementById('saveStatus');
 
-    // initialize editor content
-    jsonInput.value = JSON.stringify(QUESTIONS, null, 2);
+    // Inicializar
+    jsonInput.value = JSON.stringify(FALLBACK_QUESTIONS, null, 2);
 
-    function startGame(){
-      index = 0; score = 0;
+    // Función para cargar preguntas desde Google Sheets
+    async function loadQuestionsFromSheets() {
+      if (!GOOGLE_APPS_SCRIPT_URL.includes('TU_SCRIPT_ID_AQUI')) {
+        try {
+          loadingDiv.style.display = 'block';
+          errorDiv.style.display = 'none';
+          
+          const response = await fetch(`${GOOGLE_APPS_SCRIPT_URL}?action=getQuestions`);
+          const data = await response.json();
+          
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          
+          if (data.questions && data.questions.length > 0) {
+            QUESTIONS = data.questions;
+            loadingDiv.style.display = 'none';
+            showMessage('✅ Preguntas cargadas desde Google Sheets', 'success');
+            return true;
+          } else {
+            throw new Error('No se encontraron preguntas en el Google Sheet');
+          }
+        } catch (error) {
+          console.error('Error cargando preguntas:', error);
+          loadingDiv.style.display = 'none';
+          showError(`Error al cargar desde Google Sheets: ${error.message}\nUsando preguntas locales.`);
+          QUESTIONS = [...FALLBACK_QUESTIONS];
+          return false;
+        }
+      } else {
+        showError('⚠️ Configura tu Google Apps Script URL en el código');
+        QUESTIONS = [...FALLBACK_QUESTIONS];
+        return false;
+      }
+    }
+
+    // Función para guardar resultados en Google Sheets
+    async function saveResultsToSheets(gameData) {
+      if (!GOOGLE_APPS_SCRIPT_URL.includes('TU_SCRIPT_ID_AQUI')) {
+        try {
+          saveStatus.textContent = 'Guardando resultados...';
+          saveStatus.style.display = 'block';
+
+          const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'saveResults',
+              score: gameData.score,
+              total: gameData.total,
+              details: gameData.details
+            })
+          });
+
+          const result = await response.json();
+          
+          if (result.success) {
+            saveStatus.textContent = '✅ Resultados guardados en Google Sheets';
+            setTimeout(() => saveStatus.style.display = 'none', 3000);
+          } else {
+            throw new Error(result.message || 'Error desconocido');
+          }
+        } catch (error) {
+          console.error('Error guardando resultados:', error);
+          saveStatus.textContent = '❌ Error al guardar en Google Sheets';
+          saveStatus.style.color = 'var(--wrong)';
+        }
+      }
+    }
+
+    function showError(message) {
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+      setTimeout(() => errorDiv.style.display = 'none', 5000);
+    }
+
+    function showMessage(message, type = 'info') {
+      const div = document.createElement('div');
+      div.textContent = message;
+      div.className = type === 'success' ? 'loading' : 'error';
+      div.style.position = 'fixed';
+      div.style.top = '20px';
+      div.style.right = '20px';
+      div.style.padding = '10px';
+      div.style.borderRadius = '6px';
+      div.style.zIndex = '1000';
+      document.body.appendChild(div);
+      setTimeout(() => div.remove(), 3000);
+    }
+
+    async function startGame() {
+      startBtn.disabled = true;
+      
+      // Cargar preguntas desde Google Sheets
+      await loadQuestionsFromSheets();
+      
+      // Inicializar juego
+      index = 0; 
+      score = 0;
+      gameDetails = [];
       qTotal.textContent = QUESTIONS.length;
-      startArea.style.display = 'none'; results.style.display = 'none'; editArea.style.display='none';
+      startArea.style.display = 'none';
+      results.style.display = 'none';
+      editArea.style.display = 'none';
       qArea.style.display = 'block';
+      startBtn.disabled = false;
+      
       showQuestion();
     }
 
-    function showQuestion(){
+    function showQuestion() {
       clearTimer();
       const cur = QUESTIONS[index];
       qIndex.textContent = index + 1;
       qText.textContent = cur.q;
       answers.innerHTML = '';
-      cur.choices.forEach((c,i)=>{
+      
+      cur.choices.forEach((c, i) => {
         const btn = document.createElement('button');
         btn.className = 'answer';
         btn.textContent = c;
@@ -154,93 +277,164 @@
         btn.onclick = () => selectAnswer(i, btn);
         answers.appendChild(btn);
       });
-      timeLeft = timePerQuestion; updateTimerVisual();
+      
+      timeLeft = timePerQuestion;
+      updateTimerVisual();
       timer = setInterval(tick, 200);
     }
 
-    function tick(){
-      timeLeft -= 0.2; if(timeLeft <= 0){timeLeft = 0; clearTimer(); timeoutAnswer();}
+    function tick() {
+      timeLeft -= 0.2;
+      if (timeLeft <= 0) {
+        timeLeft = 0;
+        clearTimer();
+        timeoutAnswer();
+      }
       updateTimerVisual();
     }
 
-    function updateTimerVisual(){
+    function updateTimerVisual() {
       timeEl.textContent = Math.ceil(timeLeft);
       const pct = Math.max(0, timeLeft / timePerQuestion);
-      prog.style.width = Math.round(pct*100) + '%';
+      prog.style.width = Math.round(pct * 100) + '%';
     }
 
-    function clearTimer(){ if(timer) { clearInterval(timer); timer=null }}
+    function clearTimer() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }
 
-    function selectAnswer(i, btnEl){
+    function selectAnswer(i, btnEl) {
       clearTimer();
       const cur = QUESTIONS[index];
       const correct = cur.answer;
-      // mark buttons
-      [...answers.children].forEach(b=>{
-        b.disabled = true;
-        if(Number(b.dataset.index) === correct) b.classList.add('correct');
+      const isCorrect = i === correct;
+      
+      // Guardar detalles de la respuesta
+      gameDetails.push({
+        question: cur.q,
+        selectedAnswer: cur.choices[i],
+        correctAnswer: cur.choices[correct],
+        isCorrect: isCorrect,
+        timeUsed: timePerQuestion - timeLeft
       });
-      if(i === correct){ score++; btnEl.classList.add('correct'); }
-      else { btnEl.classList.add('wrong'); }
-      // wait a bit then next
+
+      // Marcar botones
+      [...answers.children].forEach(b => {
+        b.disabled = true;
+        if (Number(b.dataset.index) === correct) b.classList.add('correct');
+      });
+
+      if (isCorrect) {
+        score++;
+        btnEl.classList.add('correct');
+      } else {
+        btnEl.classList.add('wrong');
+      }
+
       setTimeout(nextQuestion, 900);
     }
 
-    function timeoutAnswer(){
-      // mark correct answer then next
+    function timeoutAnswer() {
       const cur = QUESTIONS[index];
-      [...answers.children].forEach(b=>{ b.disabled = true; if(Number(b.dataset.index) === cur.answer) b.classList.add('correct'); });
+      
+      // Guardar detalles del timeout
+      gameDetails.push({
+        question: cur.q,
+        selectedAnswer: null,
+        correctAnswer: cur.choices[cur.answer],
+        isCorrect: false,
+        timeUsed: timePerQuestion,
+        timeout: true
+      });
+
+      [...answers.children].forEach(b => {
+        b.disabled = true;
+        if (Number(b.dataset.index) === cur.answer) b.classList.add('correct');
+      });
+      
       setTimeout(nextQuestion, 900);
     }
 
-    function nextQuestion(){
+    function nextQuestion() {
       index++;
-      if(index >= QUESTIONS.length) endGame(); else showQuestion();
+      if (index >= QUESTIONS.length) endGame();
+      else showQuestion();
     }
 
-    function endGame(){
-      clearTimer(); qArea.style.display = 'none'; results.style.display = 'block';
+    async function endGame() {
+      clearTimer();
+      qArea.style.display = 'none';
+      results.style.display = 'block';
       scoreTitle.textContent = '¡Terminado!';
-      scoreText.textContent = `Obtuviste ${score} de ${QUESTIONS.length} respuestas correctas.`;
+      scoreText.textContent = `Obtuviste ${score} de ${QUESTIONS.length} respuestas correctas (${Math.round((score/QUESTIONS.length)*100)}%).`;
+      
+      // Guardar resultados en Google Sheets
+      const gameData = {
+        score: score,
+        total: QUESTIONS.length,
+        details: gameDetails
+      };
+      
+      await saveResultsToSheets(gameData);
     }
 
+    // Event listeners
     startBtn.addEventListener('click', startGame);
     replayBtn.addEventListener('click', startGame);
+    editBtn.addEventListener('click', () => {
+      editArea.style.display = 'block';
+      jsonInput.focus();
+    });
+    closeEditor.addEventListener('click', () => editArea.style.display = 'none');
 
-    editBtn.addEventListener('click', ()=>{ editArea.style.display='block'; jsonInput.focus(); });
-    closeEditor.addEventListener('click', ()=>{ editArea.style.display='none'; });
-
-    saveJson.addEventListener('click', ()=>{
-      try{
+    saveJson.addEventListener('click', () => {
+      try {
         const parsed = JSON.parse(jsonInput.value);
-        if(!Array.isArray(parsed)) throw new Error('Se requiere un array de preguntas');
-        // replace QUESTIONS content (note: local variable won't update const, so copy)
-        QUESTIONS.length = 0; parsed.forEach(p=>QUESTIONS.push(p));
+        if (!Array.isArray(parsed)) throw new Error('Se requiere un array de preguntas');
+        QUESTIONS.length = 0;
+        parsed.forEach(p => QUESTIONS.push(p));
         qTotal.textContent = QUESTIONS.length;
-        alert('Preguntas guardadas. Presiona Iniciar juego.');
-      }catch(err){ alert('JSON inválido: ' + err.message); }
-    });
-
-    downloadBtn.addEventListener('click', ()=>{
-      const data = {score, total: QUESTIONS.length, date: new Date().toISOString()};
-      const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'resultados_quiz.json'; a.click(); URL.revokeObjectURL(url);
-    });
-
-    // Make iframe resize-friendly when loaded inside parent
-    window.addEventListener('message', e => {
-      if(e.data && e.data.type === 'setTimePerQuestion'){
-        // example of remote configuration
-        // parent can postMessage({type:'setTimePerQuestion', value:15}, '*')
+        showMessage('✅ Preguntas locales guardadas', 'success');
+      } catch (err) {
+        showError('JSON inválido: ' + err.message);
       }
     });
 
-    // Accessibility: allow keyboard selection (1-4)
-    window.addEventListener('keydown', (e)=>{
-      if(qArea.style.display==='block'){
+    downloadBtn.addEventListener('click', () => {
+      const data = {
+        score,
+        total: QUESTIONS.length,
+        percentage: Math.round((score/QUESTIONS.length)*100),
+        date: new Date().toISOString(),
+        details: gameDetails
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'resultados_quiz_' + new Date().toISOString().split('T')[0] + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Accesibilidad con teclado
+    window.addEventListener('keydown', (e) => {
+      if (qArea.style.display === 'block') {
         const k = parseInt(e.key);
-        if(!isNaN(k) && k>=1 && k<=4){ const btn = answers.children[k-1]; if(btn) btn.click(); }
+        if (!isNaN(k) && k >= 1 && k <= 4) {
+          const btn = answers.children[k - 1];
+          if (btn && !btn.disabled) btn.click();
+        }
+      }
+    });
+
+    // Cargar preguntas al inicio para verificar conexión
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!GOOGLE_APPS_SCRIPT_URL.includes('TU_SCRIPT_ID_AQUI')) {
+        loadQuestionsFromSheets();
       }
     });
 
