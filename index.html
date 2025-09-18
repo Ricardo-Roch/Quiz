@@ -3,129 +3,385 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mini-Kahoot — Quiz interactivo</title>
+  <title>Conecta Quiz — Farmacias del Ahorro</title>
   <style>
-    :root{--bg:#0f172a;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--correct:#10b981;--wrong:#ef4444}
+    :root{
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --card-bg: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --accent-blue: #3b82f6;
+      --accent-red: #ef4444;
+      --success: #10b981;
+      --border: #e2e8f0;
+      --shadow: rgba(15, 23, 42, 0.08);
+      --primary-red: #ef4444;
+      --primary-blue: #3b82f6;
+    }
+    
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#e6eef6;background:linear-gradient(180deg,#071029 0%, #071732 100%)}
-    .app{max-width:980px;margin:32px auto;padding:18px;background:rgba(255,255,255,0.02);border-radius:12px;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
-    header{display:flex;align-items:center;gap:12px}
-    header h1{font-size:20px;margin:0}
-    .center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:28px}
-    .card{background:var(--card);padding:20px;border-radius:10px;width:100%;}
-    .btn{display:inline-block;padding:10px 16px;border-radius:8px;background:var(--accent);color:#052022;font-weight:600;border:none;cursor:pointer}
-    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-    .btn:disabled{opacity:0.5;cursor:not-allowed}
-    .controls{display:flex;gap:8px;flex-wrap:wrap}
-    .question{font-size:18px;margin-bottom:12px}
-    .answers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .answer{padding:12px;border-radius:8px;background:rgba(255,255,255,0.02);cursor:pointer;border:1px solid rgba(255,255,255,0.03)}
-    .answer:hover{transform:translateY(-3px);transition:all .12s}
-    .answer.correct{background:linear-gradient(90deg, rgba(16,185,129,0.12), rgba(16,185,129,0.06));border-color:rgba(16,185,129,0.22)}
-    .answer.wrong{background:linear-gradient(90deg, rgba(239,68,68,0.08), rgba(239,68,68,0.04));border-color:rgba(239,68,68,0.16)}
-    .meta{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:var(--muted);font-size:14px}
-    .progress{height:10px;background:rgba(255,255,255,0.03);border-radius:999px;overflow:hidden}
-    .progress > i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--accent),#7dd3fc)}
-    .timer{font-weight:700}
-    .start-screen{padding:20px;text-align:center}
-    .results{padding:20px;text-align:center}
-    .loading{color:var(--accent);font-size:14px}
-    .error{color:var(--wrong);font-size:14px;padding:10px;background:rgba(239,68,68,0.1);border-radius:6px}
-    footer{margin-top:12px;color:var(--muted);font-size:13px;text-align:center}
-    @media(max-width:600px){.answers{grid-template-columns:1fr}.app{margin:12px}}
+    
+    html,body{
+      height:100%;
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      color:var(--text-primary);
+      background:linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      position: relative;
+    }
+    
+    .app{
+      max-width:980px;
+      margin:32px auto;
+      padding:24px;
+      background:var(--card-bg);
+      border-radius:16px;
+      box-shadow:0 10px 40px var(--shadow);
+      border:1px solid var(--border);
+      position: relative;
+    }
+    
+    header{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      padding-bottom:24px;
+      border-bottom:2px solid var(--border);
+      margin-bottom:32px;
+    }
+    
+    .logo{
+      height: 60px;
+      width: auto;
+    }
+    
+    header h1{
+      font-size:28px;
+      margin:0;
+      font-weight:700;
+      color:var(--text-primary);
+    }
+    
+    .subtitle{
+      color:var(--text-secondary);
+      font-size:14px;
+      font-weight:500;
+    }
+    
+    .brand-footer{
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+    
+    .brand-logo{
+      height: 32px;
+      width: auto;
+      opacity: 0.7;
+      transition: opacity 0.3s ease;
+    }
+    
+    .brand-logo:hover{
+      opacity: 1;
+    }
+    
+    .center{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:20px;
+      padding:32px;
+    }
+    
+    .card{
+      background:var(--card-bg);
+      padding:28px;
+      border-radius:12px;
+      width:100%;
+      border:1px solid var(--border);
+    }
+    
+    .btn{
+      display:inline-block;
+      padding:16px 32px;
+      border-radius:12px;
+      background:linear-gradient(135deg, var(--primary-red), #dc2626);
+      color:white;
+      font-weight:700;
+      border:none;
+      cursor:pointer;
+      font-size:18px;
+      transition:all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+    }
+    
+    .btn:hover{
+      background:linear-gradient(135deg, #dc2626, var(--primary-red));
+      transform:translateY(-3px);
+      box-shadow:0 8px 25px rgba(239, 68, 68, 0.4);
+    }
+    
+    .btn:disabled{
+      opacity:0.6;
+      cursor:not-allowed;
+      transform:none;
+      box-shadow: none;
+    }
+    
+    .controls{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+    
+    .question{
+      font-size:24px;
+      margin-bottom:20px;
+      font-weight:700;
+      color:var(--text-primary);
+      text-align:center;
+      line-height:1.4;
+    }
+    
+    .answers{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:16px;
+    }
+    
+    .answer{
+      padding:20px;
+      border-radius:12px;
+      background:var(--bg-secondary);
+      cursor:pointer;
+      border:2px solid var(--border);
+      font-size:16px;
+      font-weight:600;
+      color:var(--text-primary);
+      transition:all 0.3s ease;
+      text-align: center;
+    }
+    
+    .answer:hover{
+      transform:translateY(-4px);
+      box-shadow:0 8px 25px var(--shadow);
+      border-color:var(--primary-blue);
+      background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+    }
+    
+    .answer.correct{
+      background:linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.08));
+      border-color:var(--primary-blue);
+      color:var(--primary-blue);
+      font-weight: 700;
+    }
+    
+    .answer.wrong{
+      background:linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.08));
+      border-color:var(--primary-red);
+      color:var(--primary-red);
+      font-weight: 700;
+    }
+    
+    .meta{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:24px;
+      color:var(--text-secondary);
+      font-size:16px;
+      font-weight:600;
+    }
+    
+    .progress{
+      height:10px;
+      background:var(--border);
+      border-radius:5px;
+      overflow:hidden;
+      margin-top:24px;
+    }
+    
+    .progress > i{
+      display:block;
+      height:100%;
+      width:100%;
+      background:linear-gradient(90deg, var(--primary-red), var(--primary-blue));
+      transition:width 0.2s ease;
+    }
+    
+    .timer{
+      font-weight:800;
+      color:var(--primary-red);
+      font-size:18px;
+    }
+    
+    .start-screen{
+      padding:40px;
+      text-align:center;
+    }
+    
+    .start-screen h2{
+      font-size:36px;
+      margin:0 0 16px 0;
+      font-weight:800;
+      background:linear-gradient(135deg, var(--primary-red), var(--primary-blue));
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+    
+    .start-screen p{
+      font-size:18px;
+      color:var(--text-secondary);
+      margin:0 0 32px 0;
+      line-height:1.6;
+    }
+    
+    .convention-badge{
+      background:linear-gradient(135deg, var(--primary-red), var(--primary-blue));
+      color:white;
+      padding:8px 16px;
+      border-radius:20px;
+      font-size:14px;
+      font-weight:600;
+      display:inline-block;
+      margin-bottom:16px;
+    }
+    
+    .results{
+      padding:40px;
+      text-align:center;
+    }
+    
+    .results h2{
+      font-size:36px;
+      margin:0 0 16px 0;
+      font-weight:800;
+      background:linear-gradient(135deg, var(--primary-red), var(--primary-blue));
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+    
+    .results p{
+      font-size:20px;
+      color:var(--text-secondary);
+      margin:0 0 32px 0;
+    }
+    
+    .score-display{
+      background:linear-gradient(135deg, #f8fafc, #e2e8f0);
+      border:2px solid var(--primary-blue);
+      border-radius:16px;
+      padding:24px;
+      margin:20px 0;
+      font-size:28px;
+      font-weight:800;
+      color:var(--primary-blue);
+    }
+    
+    .loading{
+      color:var(--accent-blue);
+      font-size:16px;
+      font-weight:500;
+    }
+    
+    .error{
+      color:var(--accent-red);
+      font-size:16px;
+      padding:16px;
+      background:rgba(239,68,68,0.08);
+      border-radius:8px;
+      border:1px solid rgba(239,68,68,0.2);
+    }
+    
+    .success-message{
+      color:var(--primary-blue);
+      font-size:16px;
+      font-weight:500;
+    }
+    
+    @media(max-width:600px){
+      .answers{grid-template-columns:1fr}
+      .app{margin:16px; padding:20px}
+      .start-screen, .results{padding:24px}
+      .logo{height: 48px;}
+      .start-screen h2{font-size:28px}
+      .brand-footer{bottom: 10px; right: 10px;}
+      .brand-logo{height: 24px;}
+    }
   </style>
 </head>
 <body>
   <div class="app" role="main">
     <header>
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <rect width="24" height="24" rx="6" fill="#052022"/>
-        <path d="M6 9h12v2H6zM6 13h8v2H6z" fill="#06b6d4"/>
-      </svg>
+      <img src="logoHoot.jpeg" alt="Logo" class="logo" />
       <div>
-        <h1>Mini-Kahoot — Quiz interactivo</h1>
-        <div style="color:var(--muted);font-size:13px">Conectado con Google Sheets</div>
+        <div class="convention-badge">Convención Conecta 2024</div>
+        <div class="subtitle">Quiz Interactivo - Farmacias del Ahorro</div>
       </div>
     </header>
 
     <main class="center card" id="app">
 
       <div id="start" class="start-screen">
-        <h2 style="margin:0 0 6px 0">¡Listo para jugar?</h2>
-        <p style="margin:0 0 12px;color:var(--muted)">Las preguntas se cargan desde Google Sheets. Responde antes de que se acabe el tiempo.</p>
+        <h2>¡Bienvenido al Quiz Conecta!</h2>
+        <p>Pon a prueba tus conocimientos sobre Farmacias del Ahorro. Responde correctamente antes de que se acabe el tiempo y demuestra tu experiencia.</p>
         <div class="controls">
-          <button class="btn" id="startBtn">Cargar preguntas y jugar</button>
-          <button class="btn ghost" id="editBtn">Editar preguntas locales</button>
+          <button class="btn" id="startBtn">🚀 Comenzar Quiz</button>
         </div>
-        <div id="loadingDiv" class="loading" style="display:none">Cargando preguntas desde Google Sheets...</div>
+        <div id="loadingDiv" class="loading" style="display:none">⏳ Preparando preguntas...</div>
         <div id="errorDiv" class="error" style="display:none"></div>
       </div>
 
       <div id="questionArea" style="display:none;width:100%">
         <div class="meta">
-          <div>Pregunta <span id="qindex">1</span>/<span id="qtotal">1</span></div>
-          <div class="timer">⏱ <span id="time">10</span>s</div>
+          <div>Pregunta <span id="qindex">1</span> de <span id="qtotal">1</span></div>
+          <div class="timer">⏱ <span id="time">15</span>s</div>
         </div>
 
-        <div style="margin-top:12px">
-          <div class="question" id="questionText">Texto de la pregunta</div>
+        <div>
+          <div class="question" id="questionText">Cargando pregunta...</div>
           <div class="answers" id="answers"></div>
         </div>
 
-        <div style="margin-top:14px">
-          <div class="progress" aria-hidden><i id="prog"></i></div>
-        </div>
-
+        <div class="progress" aria-hidden><i id="prog"></i></div>
       </div>
 
       <div id="results" class="results" style="display:none">
-        <h2 id="scoreTitle">Resultados</h2>
-        <p id="scoreText" style="color:var(--muted)"></p>
-        <div style="margin-top:12px">
-          <button class="btn" id="replayBtn">Jugar de nuevo</button>
-          <button class="btn ghost" id="downloadBtn">Descargar resultados</button>
+        <h2 id="scoreTitle">¡Felicitaciones!</h2>
+        <div class="score-display">
+          <div id="scoreText">Tu puntuación aparecerá aquí</div>
         </div>
-        <div id="saveStatus" class="loading" style="display:none; margin-top:8px"></div>
-      </div>
-
-      <div id="editor" style="display:none;width:100%;margin-top:12px">
-        <label style="font-size:14px;color:var(--muted)">Editar JSON de preguntas locales (backup)</label>
-        <textarea id="jsonInput" style="width:100%;height:140px;margin-top:8px;background:#0b1220;color:#e6eef6;border:1px solid rgba(255,255,255,0.03);padding:10px;border-radius:8px;font-family:monospace;font-size:13px"></textarea>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button class="btn" id="saveJson">Guardar localmente</button>
-          <button class="btn ghost" id="closeEditor">Cerrar</button>
-        </div>
+        <p style="color:var(--primary-blue); font-weight:600;">¡Gracias por participar en la Convención Conecta!</p>
+        <div id="saveStatus" class="loading" style="display:none; margin-top:16px"></div>
       </div>
 
     </main>
+  </div>
 
-    <footer>
-      <p>📊 Los resultados se guardan automáticamente en Google Sheets</p>
-      <p style="font-size:11px">Configura tu Google Apps Script URL abajo ⬇️</p>
-    </footer>
+  <!-- Brand logo in bottom right -->
+  <div class="brand-footer">
+    <img src="logooIO.png" alt="Powered by" class="brand-logo" />
   </div>
 
   <script>
-    // 🔧 CONFIGURACIÓN IMPORTANTE - CAMBIA ESTA URL
-    // Obtén esta URL después de publicar tu Google Apps Script
+    // 🔧 CONFIGURACIÓN DEL JUEGO
     const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwiBFpQCAs1PZFPLF8LvQTjtmBuYywun8V0t1vzf5SGX7mHtAMkTwvaGUDGpyhCGmg4-w/exec';
-    
-    // Configuración local (backup)
-    const timePerQuestion = 12;
-    const FALLBACK_QUESTIONS = [
-      {q: '¿?', choices: ['Guadalajara','Monterrey','Ciudad de México','Puebla'], answer: 2},
-      {q: '¿?', choices: ['Python','HTML','C++','Swift'], answer: 1},
-      {q: '¿?', choices: ['3','4','5','22'], answer: 1}
-    ];
+    const timePerQuestion = 15; // segundos por pregunta
 
     // Variables del juego
-    let QUESTIONS = [...FALLBACK_QUESTIONS];
+    let QUESTIONS = [];
     let index = 0, score = 0, timer = null, timeLeft = timePerQuestion;
     let gameDetails = []; // Para guardar detalles de cada respuesta
 
     // Elementos DOM
     const startBtn = document.getElementById('startBtn');
-    const editBtn = document.getElementById('editBtn');
     const startArea = document.getElementById('start');
     const qArea = document.getElementById('questionArea');
     const results = document.getElementById('results');
@@ -135,131 +391,136 @@
     const answers = document.getElementById('answers');
     const timeEl = document.getElementById('time');
     const prog = document.getElementById('prog');
-    const replayBtn = document.getElementById('replayBtn');
     const scoreText = document.getElementById('scoreText');
     const scoreTitle = document.getElementById('scoreTitle');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const editArea = document.getElementById('editor');
-    const jsonInput = document.getElementById('jsonInput');
-    const saveJson = document.getElementById('saveJson');
-    const closeEditor = document.getElementById('closeEditor');
     const loadingDiv = document.getElementById('loadingDiv');
     const errorDiv = document.getElementById('errorDiv');
     const saveStatus = document.getElementById('saveStatus');
 
-    // Inicializar
-    jsonInput.value = JSON.stringify(FALLBACK_QUESTIONS, null, 2);
-
     // Función para cargar preguntas desde Google Sheets
     async function loadQuestionsFromSheets() {
-      if (!GOOGLE_APPS_SCRIPT_URL.includes('TU_SCRIPT_ID_AQUI')) {
-        try {
-          loadingDiv.style.display = 'block';
-          errorDiv.style.display = 'none';
-          
-          const response = await fetch(`${GOOGLE_APPS_SCRIPT_URL}?action=getQuestions`);
-          const data = await response.json();
-          
-          if (data.error) {
-            throw new Error(data.error);
-          }
-          
-          if (data.questions && data.questions.length > 0) {
-            QUESTIONS = data.questions;
-            loadingDiv.style.display = 'none';
-            showMessage('✅ Preguntas cargadas desde Google Sheets', 'success');
-            return true;
-          } else {
-            throw new Error('No se encontraron preguntas en el Google Sheet');
-          }
-        } catch (error) {
-          console.error('Error cargando preguntas:', error);
-          loadingDiv.style.display = 'none';
-          showError(`Error al cargar desde Google Sheets: ${error.message}\nUsando preguntas locales.`);
-          QUESTIONS = [...FALLBACK_QUESTIONS];
-          return false;
+      try {
+        loadingDiv.style.display = 'block';
+        errorDiv.style.display = 'none';
+        startBtn.disabled = true;
+        
+        const response = await fetch(`${GOOGLE_APPS_SCRIPT_URL}?action=getQuestions`);
+        
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status}`);
         }
-      } else {
-        showError('⚠️ Configura tu Google Apps Script URL en el código');
-        QUESTIONS = [...FALLBACK_QUESTIONS];
+        
+        const data = await response.json();
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        
+        if (data.questions && data.questions.length > 0) {
+          QUESTIONS = data.questions;
+          loadingDiv.style.display = 'none';
+          showMessage('✅ Preguntas cargadas correctamente', 'success');
+          return true;
+        } else {
+          throw new Error('No se encontraron preguntas en Google Sheets');
+        }
+      } catch (error) {
+        console.error('Error cargando preguntas:', error);
+        loadingDiv.style.display = 'none';
+        errorDiv.innerHTML = `❌ Error al conectar con Google Sheets: ${error.message}`;
+        errorDiv.style.display = 'block';
         return false;
+      } finally {
+        startBtn.disabled = false;
       }
     }
 
     // Función para guardar resultados en Google Sheets
     async function saveResultsToSheets(gameData) {
-      if (!GOOGLE_APPS_SCRIPT_URL.includes('TU_SCRIPT_ID_AQUI')) {
-        try {
-          saveStatus.textContent = 'Guardando resultados...';
-          saveStatus.style.display = 'block';
+      try {
+        saveStatus.textContent = '💾 Guardando resultados...';
+        saveStatus.style.display = 'block';
+        saveStatus.className = 'loading';
 
-          const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              action: 'saveResults',
-              score: gameData.score,
-              total: gameData.total,
-              details: gameData.details
-            })
-          });
+        const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'saveResults',
+            score: gameData.score,
+            total: gameData.total,
+            details: gameData.details
+          })
+        });
 
-          const result = await response.json();
-          
-          if (result.success) {
-            saveStatus.textContent = '✅ Resultados guardados en Google Sheets';
-            setTimeout(() => saveStatus.style.display = 'none', 3000);
-          } else {
-            throw new Error(result.message || 'Error desconocido');
-          }
-        } catch (error) {
-          console.error('Error guardando resultados:', error);
-          saveStatus.textContent = '❌ Error al guardar en Google Sheets';
-          saveStatus.style.color = 'var(--wrong)';
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status}`);
         }
-      }
-    }
 
-    function showError(message) {
-      errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
-      setTimeout(() => errorDiv.style.display = 'none', 5000);
+        const result = await response.json();
+        
+        if (result.success) {
+          saveStatus.textContent = '✅ Resultados guardados correctamente';
+          saveStatus.className = 'success-message';
+          setTimeout(() => saveStatus.style.display = 'none', 4000);
+        } else {
+          throw new Error(result.message || 'Error desconocido');
+        }
+      } catch (error) {
+        console.error('Error guardando resultados:', error);
+        saveStatus.textContent = '❌ Error al guardar resultados';
+        saveStatus.className = 'error';
+        saveStatus.style.display = 'block';
+      }
     }
 
     function showMessage(message, type = 'info') {
       const div = document.createElement('div');
-      div.textContent = message;
-      div.className = type === 'success' ? 'loading' : 'error';
+      div.innerHTML = message;
+      div.className = type === 'success' ? 'success-message' : 'loading';
       div.style.position = 'fixed';
-      div.style.top = '20px';
-      div.style.right = '20px';
-      div.style.padding = '10px';
-      div.style.borderRadius = '6px';
+      div.style.top = '24px';
+      div.style.left = '50%';
+      div.style.transform = 'translateX(-50%)';
+      div.style.padding = '16px 20px';
+      div.style.borderRadius = '8px';
       div.style.zIndex = '1000';
+      div.style.backgroundColor = 'white';
+      div.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)';
+      div.style.border = '1px solid var(--border)';
       document.body.appendChild(div);
-      setTimeout(() => div.remove(), 3000);
+      setTimeout(() => div.remove(), 3500);
     }
 
     async function startGame() {
       startBtn.disabled = true;
+      startBtn.textContent = '🚀 Cargando...';
       
       // Cargar preguntas desde Google Sheets
-      await loadQuestionsFromSheets();
+      const loaded = await loadQuestionsFromSheets();
       
-      // Inicializar juego
-      index = 0; 
-      score = 0;
-      gameDetails = [];
-      qTotal.textContent = QUESTIONS.length;
-      startArea.style.display = 'none';
-      results.style.display = 'none';
-      editArea.style.display = 'none';
-      qArea.style.display = 'block';
-      startBtn.disabled = false;
+      if (!loaded || QUESTIONS.length === 0) {
+        startBtn.disabled = false;
+        startBtn.textContent = '🚀 Comenzar Quiz';
+        return;
+      }
       
-      showQuestion();
+      setTimeout(() => {
+        // Inicializar juego
+        index = 0; 
+        score = 0;
+        gameDetails = [];
+        qTotal.textContent = QUESTIONS.length;
+        startArea.style.display = 'none';
+        results.style.display = 'none';
+        qArea.style.display = 'block';
+        startBtn.disabled = false;
+        startBtn.textContent = '🚀 Comenzar Quiz';
+        
+        showQuestion();
+      }, 800);
     }
 
     function showQuestion() {
@@ -318,12 +579,13 @@
         selectedAnswer: cur.choices[i],
         correctAnswer: cur.choices[correct],
         isCorrect: isCorrect,
-        timeUsed: timePerQuestion - timeLeft
+        timeUsed: Math.round((timePerQuestion - timeLeft) * 10) / 10
       });
 
       // Marcar botones
       [...answers.children].forEach(b => {
         b.disabled = true;
+        b.style.cursor = 'default';
         if (Number(b.dataset.index) === correct) b.classList.add('correct');
       });
 
@@ -334,7 +596,7 @@
         btnEl.classList.add('wrong');
       }
 
-      setTimeout(nextQuestion, 900);
+      setTimeout(nextQuestion, 1500);
     }
 
     function timeoutAnswer() {
@@ -343,7 +605,7 @@
       // Guardar detalles del timeout
       gameDetails.push({
         question: cur.q,
-        selectedAnswer: null,
+        selectedAnswer: 'Sin respuesta (tiempo agotado)',
         correctAnswer: cur.choices[cur.answer],
         isCorrect: false,
         timeUsed: timePerQuestion,
@@ -352,10 +614,11 @@
 
       [...answers.children].forEach(b => {
         b.disabled = true;
+        b.style.cursor = 'default';
         if (Number(b.dataset.index) === cur.answer) b.classList.add('correct');
       });
       
-      setTimeout(nextQuestion, 900);
+      setTimeout(nextQuestion, 1500);
     }
 
     function nextQuestion() {
@@ -364,14 +627,28 @@
       else showQuestion();
     }
 
-    async function endGame() {
+    function endGame() {
       clearTimer();
       qArea.style.display = 'none';
       results.style.display = 'block';
-      scoreTitle.textContent = '¡Terminado!';
-      scoreText.textContent = `Obtuviste ${score} de ${QUESTIONS.length} respuestas correctas (${Math.round((score/QUESTIONS.length)*100)}%).`;
       
-      // Guardar resultados en Google Sheets
+      const percentage = Math.round((score/QUESTIONS.length)*100);
+      
+      if (percentage >= 80) {
+        scoreTitle.textContent = '¡Excelente conocimiento!';
+      } else if (percentage >= 60) {
+        scoreTitle.textContent = '¡Muy buen trabajo!';
+      } else if (percentage >= 40) {
+        scoreTitle.textContent = '¡Buen intento!';
+      } else {
+        scoreTitle.textContent = '¡Sigue aprendiendo!';
+      }
+      
+      scoreText.innerHTML = `
+        <div style="font-size:48px; margin-bottom:8px;">${score}/${QUESTIONS.length}</div>
+        <div style="font-size:20px;">${percentage}% Correcto</div>
+      `;
+      
       const gameData = {
         score: score,
         total: QUESTIONS.length,
@@ -383,42 +660,6 @@
 
     // Event listeners
     startBtn.addEventListener('click', startGame);
-    replayBtn.addEventListener('click', startGame);
-    editBtn.addEventListener('click', () => {
-      editArea.style.display = 'block';
-      jsonInput.focus();
-    });
-    closeEditor.addEventListener('click', () => editArea.style.display = 'none');
-
-    saveJson.addEventListener('click', () => {
-      try {
-        const parsed = JSON.parse(jsonInput.value);
-        if (!Array.isArray(parsed)) throw new Error('Se requiere un array de preguntas');
-        QUESTIONS.length = 0;
-        parsed.forEach(p => QUESTIONS.push(p));
-        qTotal.textContent = QUESTIONS.length;
-        showMessage('✅ Preguntas locales guardadas', 'success');
-      } catch (err) {
-        showError('JSON inválido: ' + err.message);
-      }
-    });
-
-    downloadBtn.addEventListener('click', () => {
-      const data = {
-        score,
-        total: QUESTIONS.length,
-        percentage: Math.round((score/QUESTIONS.length)*100),
-        date: new Date().toISOString(),
-        details: gameDetails
-      };
-      const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'resultados_quiz_' + new Date().toISOString().split('T')[0] + '.json';
-      a.click();
-      URL.revokeObjectURL(url);
-    });
 
     // Accesibilidad con teclado
     window.addEventListener('keydown', (e) => {
@@ -431,11 +672,15 @@
       }
     });
 
-    // Cargar preguntas al inicio para verificar conexión
-    document.addEventListener('DOMContentLoaded', () => {
-      if (!GOOGLE_APPS_SCRIPT_URL.includes('TU_SCRIPT_ID_AQUI')) {
-        loadQuestionsFromSheets();
-      }
+    // Animación de entrada
+    window.addEventListener('load', () => {
+      document.querySelector('.app').style.opacity = '0';
+      document.querySelector('.app').style.transform = 'translateY(20px)';
+      setTimeout(() => {
+        document.querySelector('.app').style.transition = 'all 0.6s ease';
+        document.querySelector('.app').style.opacity = '1';
+        document.querySelector('.app').style.transform = 'translateY(0)';
+      }, 100);
     });
 
   </script>
