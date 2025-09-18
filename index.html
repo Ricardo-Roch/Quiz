@@ -401,16 +401,32 @@
     async function loadQuestionsFromSheets() {
       try {
         loadingDiv.style.display = 'block';
+        loadingDiv.textContent = '⏳ Conectando con Google Sheets...';
         errorDiv.style.display = 'none';
         startBtn.disabled = true;
         
-        const response = await fetch(`${GOOGLE_APPS_SCRIPT_URL}?action=getQuestions`);
+        console.log('Intentando cargar desde:', GOOGLE_APPS_SCRIPT_URL);
+        
+        const response = await fetch(`${GOOGLE_APPS_SCRIPT_URL}?action=getQuestions`, {
+          method: 'GET',
+          mode: 'cors',
+        });
+        
+        console.log('Response status:', response.status);
         
         if (!response.ok) {
-          throw new Error(`Error HTTP: ${response.status}`);
+          throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
         }
         
-        const data = await response.json();
+        const text = await response.text();
+        console.log('Response text:', text);
+        
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          throw new Error(`Error parsing JSON: ${parseError.message}. Response: ${text}`);
+        }
         
         if (data.error) {
           throw new Error(data.error);
@@ -418,16 +434,27 @@
         
         if (data.questions && data.questions.length > 0) {
           QUESTIONS = data.questions;
+          console.log('Questions loaded:', QUESTIONS);
           loadingDiv.style.display = 'none';
           showMessage('✅ Preguntas cargadas correctamente', 'success');
           return true;
         } else {
-          throw new Error('No se encontraron preguntas en Google Sheets');
+          throw new Error('No se encontraron preguntas en Google Sheets. Estructura recibida: ' + JSON.stringify(data));
         }
       } catch (error) {
-        console.error('Error cargando preguntas:', error);
+        console.error('Error completo:', error);
         loadingDiv.style.display = 'none';
-        errorDiv.innerHTML = `❌ Error al conectar con Google Sheets: ${error.message}`;
+        
+        let errorMessage = `❌ Error al conectar con Google Sheets:<br><br>`;
+        errorMessage += `<strong>Detalles:</strong> ${error.message}<br><br>`;
+        errorMessage += `<strong>URL:</strong> ${GOOGLE_APPS_SCRIPT_URL}<br><br>`;
+        errorMessage += `<strong>Posibles causas:</strong><br>`;
+        errorMessage += `• El Google Apps Script no está publicado correctamente<br>`;
+        errorMessage += `• La hoja "Preguntas" no existe<br>`;
+        errorMessage += `• Las columnas no están en el formato correcto<br>`;
+        errorMessage += `• Problemas de permisos CORS`;
+        
+        errorDiv.innerHTML = errorMessage;
         errorDiv.style.display = 'block';
         return false;
       } finally {
@@ -649,13 +676,13 @@
         <div style="font-size:20px;">${percentage}% Correcto</div>
       `;
       
-      const gameData = {
-        score: score,
-        total: QUESTIONS.length,
-        details: gameDetails
-      };
-      
-      await saveResultsToSheets(gameData);
+      // Comentado temporalmente - solo mostrar resultados por ahora
+      // const gameData = {
+      //   score: score,
+      //   total: QUESTIONS.length,
+      //   details: gameDetails
+      // };
+      // await saveResultsToSheets(gameData);
     }
 
     // Event listeners
